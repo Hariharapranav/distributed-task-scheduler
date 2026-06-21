@@ -1,145 +1,214 @@
-# ⚡ TaskFlow
+<div align="center">
 
-> **Distributed Task Scheduler & Notification Engine**
->
-> A production-grade, highly resilient platform designed for orchestrating cron schedules, interval triggers, and one-off tasks with real-time UI telemetry and failure alerts.
+<h1>⚡ TaskFlow</h1>
 
-<p align="left">
-  <a href="#-key-features">🎯 Features</a> •
-  <a href="#-architecture">🏗️ Architecture</a> •
-  <a href="#%EF%B8%8F-quick-start">🚀 Quick Start</a> •
-  <a href="#-directory-structure">📁 Structure</a> •
-  <a href="#%EF%B8%8F-production-deployment">☁️ Deployment</a>
+<p>Production-grade Distributed Task Scheduler & Notification Engine powering async cron workflows, webhook dispatching, shell execution queues, and live event telemetry.</p>
+
+<p>
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white"/>
 </p>
 
----
+<p>
+  <img src="https://img.shields.io/badge/Celery-5.4-37814A?style=for-the-badge&logo=celery&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Nginx-Proxy-009639?style=for-the-badge&logo=nginx&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Render-Deployed-46E3B7?style=for-the-badge&logo=render&logoColor=white"/>
+</p>
 
-## 🛠️ Tech Stack
-
-| Component | Tech Badge | Role |
-| :--- | :--- | :--- |
-| **Frontend** | ![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black) <br> ![](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) | Live Dashboard, Telemetry Charts, and Visual Cron Scheduler Builder |
-| **API Backend** | ![](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) <br> ![](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) | REST API Router, WebSocket Real-time Pushes, JWT Security, & API Gateways |
-| **Worker Queue** | ![](https://img.shields.io/badge/Celery-37814A?style=flat-square&logo=celery&logoColor=white) <br> ![](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white) | Distributed Job Executer clusters performing HTTP Webhooks & Shell commands |
-| **Messaging** | ![](https://img.shields.io/badge/Apache_Kafka-231F20?style=flat-square&logo=apache-kafka&logoColor=white) | Streaming Pipeline distributing task execution status change events |
-| **Event Consumer**| ![](https://img.shields.io/badge/Python_Async-3776AB?style=flat-square&logo=python&logoColor=white) | Daemon subscribing to Kafka events and dispatching user rule notifications |
-| **Database** | ![](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white) | Persistent Storage keeping registry schemas, run logs, and user policies |
-| **Orchestration** | ![](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) <br> ![](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white) | Load Balancer reverse proxy router & local containerized orchestrator |
+</div>
 
 ---
 
-## 🎯 Key Features
+## Tech Stack
 
-*   **🔒 Auth Gateway**: Secure JWT credentials (access/refresh tokens) and bcrypt hashing.
-*   **🛠️ Execution Handlers**:
-    *   `HTTP/Webhook`: Dynamic methods (`GET`/`POST`/`PUT`/`DELETE`), request body payloads, headers, and timeouts.
-    *   `Shell command`: Run shell scripts, return terminal exit codes, standard output, and logs.
-*   **⏱️ Dynamic Scheduling**:
-    *   *Manual*: Queues instantly on demand.
-    *   *Cron Expressions*: Linux standard 5-field crontabs (`*/5 * * * *`).
-    *   *Intervals*: Repeat continuously every $N$ seconds.
-    *   *One-Time*: Target exact UTC timestamps.
-*   **🔄 Fault Tolerance**: Automatically retry failing tasks with configurable run delays.
-*   **📡 WebSocket Pushes**: Instant client-side state updates for new runs, logs, and logs.
-*   **🔔 Routing Rules**: Configure task-specific rules to trigger **SMTP HTML emails** or **HMAC-signed Webhooks** on task success or failure.
+| Layer | Technology |
+|---|---|
+| **Framework** | FastAPI + Uvicorn (async) |
+| **Dashboard** | React 18 + Vite + Recharts + WebSockets |
+| **Database** | PostgreSQL 15 + SQLAlchemy 2.0 (async) + Alembic |
+| **Task Queue** | Celery 5 + Redis 7 Broker |
+| **Message Pipeline** | Apache Kafka + Zookeeper |
+| **Event Consumer**| Async Python (`aiokafka`) |
+| **Auth** | JWT (access + refresh) + bcrypt |
+| **Notifications** | SMTP HTML Emails (`aiosmtplib`) + HMAC-SHA256 signed webhooks |
+| **Containerization** | Docker + Docker Compose + Nginx |
+| **Hosting** | Render (Web API + Workers + Postgres + Redis) |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   React.js Dashboard                   │
-│        (Live Execution Telemetry & Status Feed)        │
-└───────────────────────────┬────────────────────────────┘
-                            │ (REST + WebSockets)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                   Nginx Proxy (Port 80)                │
-└───────────────────────────┬────────────────────────────┘
-                            │ (Reverse Proxy)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                    FastAPI App API                     │
-└─────┬─────────────────────┬──────────────────────┬─────┘
-      │                     │                      │
-      ▼                     ▼                      ▼
-┌───────────┐         ┌───────────┐          ┌───────────┐
-│ Postgres  │         │   Redis   │          │ WebSocket │
-│ (Schemas) │         │ (Broker)  │          │ (Pushes)  │
-└───────────┘         └─────┬─────┘          └───────────┘
-                            │
-                            ▼
-                      ┌───────────┐
-                      │  Celery   │ ───► Executes (HTTP/Shell)
-                      └─────┬─────┘
-                            │
-                            ▼ (Publishes Status)
-                      ┌───────────┐
-                      │   Kafka   │
-                      └─────┬─────┘
-                            │
-                            ▼ (Consumes Events)
-                      ┌───────────┐
-                      │ Consumer  │ ───► Dispatches Notifications
-                      └───────────────── (Email / Signed Webhooks)
+Client Requests
+      │
+      ▼
+ Nginx Proxy ────────────────────────── WebSockets (/ws)
+      │                                     │
+      ├── (REST API /api)                   ▼
+ FastAPI App ───────────────────────── React Dashboard
+      │
+      ├── /auth          JWT sign-in, login, refresh tokens
+      ├── /tasks         CRUD schedulers + manual dispatchers
+      ├── /executions    Telemetry logs + analytics graphs
+      └── /notifications Notification rules & event logs
+              │
+              ▼ DB Schedules
+       Celery Workers (Redis Broker + Beat)
+              ├── 🌐 HTTP Request Execution (Webhooks)
+              └── 🐚 Terminal Command Execution (Shell)
+                      │
+                      ▼ Publishes Status
+                Apache Kafka
+                      │
+                      ▼ Consumes Events
+                Kafka Consumer Service
+                      ├── 📧 SMTP HTML Email Alert
+                      └── 🔗 HMAC-SHA256 Signed Webhook Dispatch
 ```
 
 ---
 
-## 🚀 Quick Start
+## Folder Structure
 
-### 1. Environment Config
+```
+distributed-task-scheduler/
+│
+├── backend/                 # FastAPI REST API & Celery Task Worker
+│   ├── app/                 # Backend app implementation
+│   │   ├── main.py          # App lifespan, routing, CORS
+│   │   ├── core/            # Config settings, DB connections, JWT security
+│   │   ├── models/          # SQLAlchemy ORM schemas
+│   │   ├── schemas/         # Pydantic validation structures
+│   │   ├── services/        # Business controllers (WS, Kafka, DB CRUD)
+│   │   └── api/             # Auth dependencies & route handlers
+│   │
+│   ├── worker/              # Celery worker application
+│   │   ├── celery_app.py    # Broker configuration & task routings
+│   │   └── tasks/           # HTTP Webhook and Shell executors
+│   │
+│   ├── alembic/             # Database migrations
+│   │   ├── env.py
+│   │   └── versions/
+│   │       └── 001_initial.py
+│   │
+│   ├── tests/               # pytest automated units suite
+│   │   └── test_auth.py
+│   │
+│   ├── Dockerfile           # Backend container build script
+│   └── requirements.txt
+│
+├── consumer/                # Kafka event consumer daemon
+│   ├── handlers/            # Event, notification, and audit routers
+│   ├── main.py              # aiokafka client message loop
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── frontend/                # Vite + React Web Application
+│   ├── src/                 # Contexts, component structures, pages
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json
+│   └── Dockerfile
+│
+├── nginx/                   # Reverse proxy server
+│   └── nginx.conf
+│
+├── docker-compose.yml       # Local orchestration stack template
+├── render.yaml              # Infrastructure-as-code Blueprint
+├── alembic.ini
+└── .env.example
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Register operator profile |
+| `POST` | `/api/auth/login` | Login → retrieve access & refresh JWTs |
+| `POST` | `/api/auth/refresh` | Obtain refreshed JWT access token |
+| `GET` | `/api/auth/me` | Retrieve authenticated profile details |
+| `GET` | `/api/tasks` | List registered tasks (with telemetry counters) |
+| `POST` | `/api/tasks` | Create task scheduler configurations |
+| `GET` | `/api/tasks/{id}` | Get detailed task configuration history |
+| `PATCH` | `/api/tasks/{id}` | Update settings or toggle execution state |
+| `DELETE` | `/api/tasks/{id}` | Delete task registry rules |
+| `POST` | `/api/tasks/{id}/trigger` | Dispatch scheduled task manually |
+| `GET` | `/api/executions` | Fetch list of task execution logs |
+| `GET` | `/api/executions/stats` | Retrieve aggregate metrics for graphics dashboard |
+| `POST` | `/api/notifications/rules` | Register alert rule (email/webhook) |
+| `GET` | `/api/notifications/logs` | Query delivery verification records |
+| `WS` | `/ws/events` | Stream real-time telemetry changes |
+
+> Full interactive docs at **`/api/docs`**
+
+---
+
+## Quick Start
+
 ```bash
-# Clone the repository
+# 1. Clone
 git clone https://github.com/Hariharapranav/distributed-task-scheduler.git
 cd distributed-task-scheduler
 
-# Copy the environment template
+# 2. Configure
 cp .env.example .env
-```
+# Fill in SMTP credentials and signature keys
 
-### 2. Run Infrastructure
-```bash
-# Startup all microservices locally
+# 3. Run
 docker-compose up --build
+
+# 4. Explore
+open http://localhost
 ```
 
-### 3. Service Entrypoints
-*   **💻 Control Dashboard**: `http://localhost`
-*   **⚙️ Swagger API Docs**: `http://localhost/api/docs`
+---
 
-### 4. Tests Run
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL async SQLAlchemy database endpoint |
+| `REDIS_URL` | Redis endpoint for Celery queues |
+| `JWT_SECRET` | Secret key parameter to sign session keys |
+| `KAFKA_BOOTSTRAP_SERVERS` | Brokers list of your Apache Kafka server |
+| `SMTP_USER` | SMTP server authentication username |
+| `SMTP_PASSWORD` | App-specific email password |
+| `SMTP_FROM` | Dispatcher notification email sender |
+| `WEBHOOK_TIMEOUT_SECONDS` | Outbound request limit for hook receivers |
+
+---
+
+## Task Execution & Notification Flow
+
+```
+1. POST /tasks/               → registers scheduling parameters (cron/interval/manual)
+2. Celery Beat fires run      → triggers Celery worker (or POST /tasks/{id}/trigger)
+3. Worker executes task       → performs HTTP request or runs Local Shell Script
+4. Worker records result      → saves runtime outputs, exit codes, & timings to DB
+5. Worker publishes status    → emits execution events to Apache Kafka topic
+6. Consumer picks up event    → resolves matching notification rules
+7. Consumer dispatches alert  → sends SMTP HTML email or POSTs HMAC-signed Webhook
+8. Web API pushes updates     → WebSocket alerts React UI to reload telemetry charts
+```
+
+---
+
+## Running Tests
+
 ```bash
-docker-compose exec backend pytest tests/
+# Run backend pytest suite on local container
+docker-compose exec backend pytest tests/ -v
 ```
 
 ---
 
-## 📁 Directory Structure
-
-```
-.
-├── backend/            # FastAPI Endpoint & Celery Task Worker
-│   ├── app/            # Models, API routes, security guards, schemas
-│   ├── worker/         # Celery setup and executable task payloads
-│   ├── alembic/        # Relational database migrations
-│   └── tests/          # pytest unit tests
-├── consumer/           # Python Kafka event subscriber
-│   └── handlers/       # Rules for emails, webhooks, and audit logs
-├── frontend/           # React SPA Interface
-│   └── src/            # Contexts, page controllers, and charts
-├── nginx/              # Routing configurations
-└── docker-compose.yml  # Local multi-service orchestrator
-```
-
----
-
-## ☁️ Production Deployment
-
-Deploy the services to **Render** using the predefined [render.yaml](file:///d:/distributed-task-scheduler/render.yaml) blueprint:
-
-1.  **`taskscheduler-api`**: FastAPI server running on `uvicorn`.
-2.  **`taskscheduler-worker`**: Celery executing client processes.
-3.  **`taskscheduler-beat`**: Celery Beat scheduler instance.
-4.  **`taskscheduler-consumer`**: Standalone Kafka consumer daemon.
+<div align="center">
+  <sub>Built with FastAPI · React · PostgreSQL · Redis · Celery · Apache Kafka · Docker · Render</sub>
+</div>
