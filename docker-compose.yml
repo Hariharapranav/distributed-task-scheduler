@@ -59,7 +59,7 @@ services:
     networks:
       - tasknet
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -87,7 +87,7 @@ services:
     networks:
       - tasknet
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -201,11 +201,15 @@ services:
   #  Frontend (React)
   # ─────────────────────────────────────────────
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: node:20-alpine
     container_name: ts_frontend
     restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
     networks:
       - tasknet
     depends_on:

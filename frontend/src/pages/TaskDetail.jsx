@@ -187,7 +187,7 @@ const styles = {
   taskId: {
     fontSize: "11px",
     color: "var(--text-muted)",
-    fontFamily: var(--font-mono),
+    fontFamily: "var(--font-mono)",
   },
   actions: {
     display: "flex",
@@ -224,7 +224,7 @@ const styles = {
     fontWeight: 500,
   },
   code: {
-    fontFamily: var(--font-mono),
+    fontFamily: "var(--font-mono)",
     color: "var(--color-accent)",
     background: "rgba(6, 182, 212, 0.08)",
     padding: "2px 6px",

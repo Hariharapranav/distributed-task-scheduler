@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, delete
+from sqlalchemy import select, func, update, delete, case
 from sqlalchemy.orm import selectinload
 import structlog
 
@@ -113,8 +113,8 @@ async def get_task_stats(db: AsyncSession, task_id: str) -> dict:
     result = await db.execute(
         select(
             func.count(TaskExecution.id).label("total"),
-            func.sum((TaskExecution.status == "success").cast(int)).label("success"),
-            func.sum((TaskExecution.status == "failed").cast(int)).label("failed"),
+            func.sum(case((TaskExecution.status == "success", 1), else_=0)).label("success"),
+            func.sum(case((TaskExecution.status == "failed", 1), else_=0)).label("failed"),
             func.avg(TaskExecution.duration_ms).label("avg_duration"),
         ).where(TaskExecution.task_id == task_id)
     )

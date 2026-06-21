@@ -103,7 +103,7 @@ const styles = {
   taskId: {
     fontSize: "10px",
     color: "var(--text-muted)",
-    fontFamily: var(--font-mono),
+    fontFamily: "var(--font-mono)",
   },
   empty: {
     textAlign: "center",
