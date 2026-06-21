@@ -39,12 +39,9 @@ async def create_task(
     db.add(task)
     await db.flush()
 
-    # Register with Celery Beat if scheduled
-    if data.schedule_type != "manual":
-        await _register_schedule(task)
-
     logger.info("task_created", task_id=task.id, schedule=data.schedule_type)
     return task
+
 
 
 async def get_task(db: AsyncSession, task_id: str, owner_id: str) -> Optional[Task]:
@@ -82,17 +79,10 @@ async def update_task(
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(task, field, value)
     task.updated_at = datetime.now(timezone.utc)
-
-    # Re-register if schedule changed
-    if data.schedule_type or data.cron_expression or data.interval_seconds:
-        await _register_schedule(task)
-
     return task
 
 
 async def delete_task(db: AsyncSession, task: Task):
-    # Remove from Celery Beat
-    _unregister_schedule(task.id)
     await db.delete(task)
 
 
@@ -137,34 +127,4 @@ async def get_task_stats(db: AsyncSession, task_id: str) -> dict:
     }
 
 
-async def _register_schedule(task: Task):
-    """Register or update a task's schedule in Celery Beat."""
-    from celery.schedules import crontab, schedule as celery_schedule
 
-    if task.schedule_type == "cron" and task.cron_expression:
-        parts = task.cron_expression.split()
-        sched = crontab(
-            minute=parts[0],
-            hour=parts[1],
-            day_of_month=parts[2],
-            month_of_year=parts[3],
-            day_of_week=parts[4],
-        )
-    elif task.schedule_type == "interval" and task.interval_seconds:
-        from datetime import timedelta
-        sched = celery_schedule(run_every=timedelta(seconds=task.interval_seconds))
-    else:
-        return  # manual or one_time handled separately
-
-    celery_app.conf.beat_schedule[f"task-{task.id}"] = {
-        "task": "worker.tasks.task_runner.run_task",
-        "schedule": sched,
-        "args": [task.id, None],
-        "kwargs": {},
-    }
-    logger.info("schedule_registered", task_id=task.id, schedule_type=task.schedule_type)
-
-
-def _unregister_schedule(task_id: str):
-    key = f"task-{task_id}"
-    celery_app.conf.beat_schedule.pop(key, None)

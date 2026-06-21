@@ -23,5 +23,10 @@ celery_app.conf.update(
     },
     task_default_queue="default",
     result_expires=86400,  # 24h
-    beat_schedule={},  # Populated dynamically from DB at startup
+    beat_schedule={
+        "check-schedules-every-10s": {
+            "task": "worker.tasks.task_runner.check_and_trigger_schedules",
+            "schedule": 10.0,
+        }
+    },
 )

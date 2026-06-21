@@ -178,8 +178,8 @@ services:
   # ─────────────────────────────────────────────
   consumer:
     build:
-      context: ./consumer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./consumer/Dockerfile
     container_name: ts_consumer
     restart: unless-stopped
     env_file: .env
@@ -194,7 +194,8 @@ services:
     networks:
       - tasknet
     volumes:
-      - ./consumer:/app
+      - ./consumer:/app/consumer
+      - ./backend/app:/app/app
 
   # ─────────────────────────────────────────────
   #  Frontend (React)

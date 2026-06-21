@@ -191,3 +191,78 @@ def run_task(self, task_id: str, execution_id: Optional[str]):
     engine.dispose()
     logger.info("task_execution_complete", task_id=task_id, status=status, duration_ms=duration_ms)
     return {"status": status, "execution_id": execution_id}
+
+
+@celery_app.task(name="worker.tasks.task_runner.check_and_trigger_schedules")
+def check_and_trigger_schedules():
+    """
+    Periodic task running on Celery Beat.
+    Checks the database for tasks that are due to execute and triggers them.
+    """
+    from datetime import datetime, timezone, timedelta
+    from sqlalchemy import create_engine, select, update
+    from sqlalchemy.orm import Session
+    from app.models.task import Task
+    from app.models.execution import TaskExecution
+    from croniter import croniter
+
+    engine = create_engine(settings.SYNC_DATABASE_URL)
+    now = datetime.now(timezone.utc)
+
+    with Session(engine) as session:
+        # Fetch enabled, scheduled tasks
+        stmt = select(Task).where(
+            Task.is_enabled == True,
+            Task.schedule_type != "manual"
+        )
+        tasks = session.execute(stmt).scalars().all()
+
+        for task in tasks:
+            due = False
+
+            try:
+                if task.schedule_type == "interval" and task.interval_seconds:
+                    if not task.last_run_at:
+                        due = True
+                    else:
+                        diff = (now - task.last_run_at.replace(tzinfo=timezone.utc)).total_seconds()
+                        if diff >= task.interval_seconds:
+                            due = True
+
+                elif task.schedule_type == "one_time" and task.run_at:
+                    if not task.last_run_at and now >= task.run_at.replace(tzinfo=timezone.utc):
+                        due = True
+
+                elif task.schedule_type == "cron" and task.cron_expression:
+                    base = task.last_run_at.replace(tzinfo=timezone.utc) if task.last_run_at else (now - timedelta(minutes=10))
+                    iter = croniter(task.cron_expression, base)
+                    next_run = iter.get_next(datetime)
+                    if now >= next_run.replace(tzinfo=timezone.utc):
+                        due = True
+            except Exception as exc:
+                logger.error("schedule_evaluation_failed", task_id=task.id, error=str(exc))
+
+            if due:
+                # Create execution record
+                execution = TaskExecution(
+                    task_id=task.id,
+                    status="pending",
+                    trigger="scheduled",
+                )
+                session.add(execution)
+                session.flush()
+
+                # Dispatch run_task async
+                celery_app.send_task(
+                    "worker.tasks.task_runner.run_task",
+                    args=[task.id, execution.id],
+                    queue="default",
+                )
+
+                # Update task last_run_at
+                task.last_run_at = now
+                logger.info("scheduled_task_triggered", task_id=task.id, name=task.name)
+
+        session.commit()
+    engine.dispose()
+
