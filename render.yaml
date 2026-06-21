@@ -1,0 +1,50 @@
+services:
+  # FastAPI Web Server
+  - type: web
+    name: taskscheduler-api
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        sync: false
+
+  # Celery Worker
+  - type: worker
+    name: taskscheduler-worker
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && celery -A worker.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+
+  # Celery Beat (Scheduler)
+  - type: worker
+    name: taskscheduler-beat
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && celery -A worker.celery_app beat --loglevel=info --scheduler celery.beat.PersistentScheduler
+    envVars:
+      - key: REDIS_URL
+        sync: false
+
+  # Kafka Consumer Service
+  - type: worker
+    name: taskscheduler-consumer
+    env: python
+    buildCommand: pip install -r consumer/requirements.txt
+    startCommand: python consumer/main.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        sync: false
